@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-console.log("VERSION: LATEST DEPLOY V2"); // 👈 ADD HERE
+console.log("VERSION: LATEST DEPLOY V3"); // 👈 ADD HERE
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG — Replace these with your real values before deploying
