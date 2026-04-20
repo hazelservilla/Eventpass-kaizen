@@ -464,8 +464,13 @@ function ScannerTab({ records, onUpdate, setResult, onScanned, autoId }) {
     if (isConfigured()) {
       try { await AT.update(record.id, update); } catch {}
     }
-    onUpdate(record.id, update);
-    if (onScanned) onScanned(record, mode, update);
+    if (onUpdate) {
+  onUpdate(record.id, update);
+}
+
+if (onScanned) {
+  onScanned(record, mode, update);
+}
 
     setResult({
       type: "success",
@@ -772,6 +777,15 @@ export default function App() {
   const [scannedMode, setScannedMode] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
   const [pendingUrlId, setPendingUrlId] = useState(null);
+  const updateRecord = (id, fields) => {
+  setRecords(prev =>
+    prev.map(r =>
+      r.id === id
+        ? { ...r, fields: { ...r.fields, ...fields } }
+        : r
+    )
+  );
+};
 
   // ── On load: check for ?id= in the URL (participant scanned QR with phone)
   useEffect(() => {
@@ -845,7 +859,8 @@ export default function App() {
       {tab === "scanner"   && (
         <ScannerTab
           records={records}
-          onUpdate={updateRecord}
+          
+  onUpdate={updateRecord}
           setResult={setResult}
           onScanned={handleScanResult}
           autoId={pendingUrlId}
