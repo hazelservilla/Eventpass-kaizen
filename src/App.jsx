@@ -96,37 +96,33 @@ function QRScanner({ onScan, onClose }) {
   try {
     setError(null);
 
-    let stream;
+    const video = videoRef.current;
 
-    try {
-      // back camera first
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { exact: "environment" }
-        },
-        audio: false
-      });
-
-    } catch {
-      // fallback to any camera
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false
-      });
+    if (!video) {
+      setError("Video element missing.");
+      return;
     }
+
+    // simpler camera request first
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
 
     streamRef.current = stream;
 
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
+    video.srcObject = stream;
 
-      await videoRef.current.play();
+    // VERY IMPORTANT FOR IOS
+    video.setAttribute("playsinline", true);
+    video.muted = true;
 
-      setScanning(true);
-    }
+    await video.play();
+
+    setScanning(true);
 
   } catch (e) {
-    console.error("CAMERA ERROR:", e);
+    console.error("FULL CAMERA ERROR:", e);
 
     setError(`${e.name}: ${e.message}`);
   }
