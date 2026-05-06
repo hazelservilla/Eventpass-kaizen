@@ -104,10 +104,27 @@ function QRScanner({ onScan, onClose }) {
     }
 
     // simpler camera request first
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: false
-    });
+    let stream;
+
+try {
+  // Prefer back camera
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: {
+        ideal: "environment"
+      }
+    },
+    audio: false
+  });
+
+} catch (e) {
+
+  // fallback to any camera
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: true,
+    audio: false
+  });
+}
 
     streamRef.current = stream;
 
