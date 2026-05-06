@@ -596,12 +596,38 @@ setLoading(true);
 
   console.log("FINAL ID:", id); // 👈 ADD HERE
 
-  let record = records.find(r => r.fields.ParticipantID?.toUpperCase() === id);
+  let record = records.find(r => {
 
-    // If configured, try Airtable live
-    if (!record && isConfigured()) {
-      try { record = await AT.findByID(id); } catch {}
+  const participantId =
+    r.fields.ParticipantID?.toUpperCase();
+
+  const participantName =
+    r.fields.Name?.toUpperCase();
+
+  return (
+    participantId === id ||
+    participantName?.includes(id)
+  );
+});
+
+// Airtable fallback
+if (!record && isConfigured()) {
+
+  try {
+
+    // Try Participant ID first
+    record = await AT.findByID(id);
+
+    // If not found, try Name search
+    if (!record) {
+      record = await AT.findByName(id);
     }
+
+  } catch (e) {
+
+    console.error("LOOKUP ERROR:", e);
+  }
+}
 
     if (!record) {
       setResult({ type: "error", title: "Not Found", subtitle: `No participant with ID: ${id}` });
@@ -717,7 +743,7 @@ if (onScanned) {
       <div style={{ position: "relative" }}>
         <div style={{ fontSize: 12, color: "rgba(255,255,255,.3)", marginBottom: 8, textAlign: "center" }}>— or enter ID manually —</div>
         <div style={{ display: "flex", gap: 8 }}>
-          <input value={manualId} onChange={e => setManualId(e.target.value.toUpperCase())}
+          <input value={manualId} onChange={e => setManualId(e.target.value)}
             onKeyDown={e => e.key === "Enter" && manualId && processID(manualId)}
             placeholder="e.g. EVT-001"
             style={{ flex: 1, padding: "14px 16px", borderRadius: 12, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)", color: "#fff", fontSize: 15, outline: "none", fontFamily: "monospace", letterSpacing: 2 }}
