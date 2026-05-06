@@ -177,9 +177,17 @@ useEffect(() => {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(imageData.data, imageData.width, imageData.height);
       if (code?.data) {
-        onScan(code.data);
-        return;
-      }
+
+  // stop camera
+  if (streamRef.current) {
+    streamRef.current.getTracks().forEach(t => t.stop());
+  }
+
+  cancelAnimationFrame(rafRef.current);
+
+  onScan(code.data);
+  return;
+}
       rafRef.current = requestAnimationFrame(tick);
     };
 
@@ -189,17 +197,36 @@ useEffect(() => {
   }, [scanning, onScan]);
 
   return (
-    <div style={{ position: "relative", width: "100%", aspectRatio: "1", borderRadius: 16, overflow: "hidden", background: "#000" }}>
-      {error ? (
   <div style={{
-    position: "absolute",
-    inset: 0,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-    textAlign: "center"
+    position: "relative",
+    width: "100%",
+    aspectRatio: "1",
+    borderRadius: 16,
+    overflow: "hidden",
+    background: "#000"
   }}>
+
+    <div style={{
+      position: "absolute",
+      top: 8,
+      left: 8,
+      zIndex: 20,
+      color: "yellow",
+      fontSize: 12
+    }}>
+      CAMERA FIX V5
+    </div>
+
+    {error ? (
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+        textAlign: "center"
+      }}>
     <div style={{ color: "#f87171", fontSize: 13 }}>
       ⚠️ {error}
     </div>
@@ -504,7 +531,7 @@ setLoading(true);
     const url = new URL(rawInput);
     const param = url.searchParams.get("id");
     if (param) id = param.toUpperCase();
-  } catch {}
+  } catch (e) {}
 
   console.log("FINAL ID:", id); // 👈 ADD HERE
 
