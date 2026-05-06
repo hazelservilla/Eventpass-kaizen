@@ -228,32 +228,51 @@ useEffect(() => {
     </div>
   </div>
 
-) : !scanning ? (
-
-  <div style={{
-    position: "absolute",
-    inset: 0,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center"
-  }}>
-    <button
-      onClick={startCamera}
-      style={{
-        padding: "16px 24px",
-        borderRadius: 12,
-        background: "#22d3ee",
-        color: "#000",
-        border: "none",
-        fontWeight: 700,
-        cursor: "pointer"
-      }}
-    >
-      📷 Tap to Start Camera
-    </button>
-  </div>
-
 ) : (
+
+  <>
+    {!scanning && (
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 30
+      }}>
+        <button
+          onClick={startCamera}
+          style={{
+            padding: "16px 24px",
+            borderRadius: 12,
+            background: "#22d3ee",
+            color: "#000",
+            border: "none",
+            fontWeight: 700,
+            cursor: "pointer"
+          }}
+        >
+          📷 Tap to Start Camera
+        </button>
+      </div>
+    )}
+
+    <video
+      ref={videoRef}
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        display: scanning ? "block" : "none"
+      }}
+      muted
+      playsInline
+    />
+
+    <canvas
+      ref={canvasRef}
+      style={{ display: "none" }}
+    />
         <>
           <video ref={videoRef} style={{ width: "100%", height: "100%", objectFit: "cover" }} muted playsInline />
           <canvas ref={canvasRef} style={{ display: "none" }} />
