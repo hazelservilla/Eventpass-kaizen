@@ -26,34 +26,75 @@ const AT = {
 
   async getAll() {
     const url = `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_TABLE}`;
+
     console.log("GET ALL URL:", url);
 
-    const res = await fetch(url, { headers: this.headers });
+    const res = await fetch(url, {
+      headers: this.headers
+    });
+
     const data = await res.json();
 
     console.log("GET ALL DATA:", data);
+
     return data.records || [];
   },
 
   async findByID(participantId) {
-    const cleanID = participantId.trim().toUpperCase();
+
+    const cleanID =
+      participantId.trim().toUpperCase();
 
     const formula = encodeURIComponent(
       `UPPER(TRIM({ParticipantID}))="${cleanID}"`
     );
 
-    const url = `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_TABLE}?filterByFormula=${formula}`;
-    console.log("FIND URL:", url);
+    const url =
+      `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_TABLE}?filterByFormula=${formula}`;
 
-    const res = await fetch(url, { headers: this.headers });
+    console.log("FIND ID URL:", url);
+
+    const res = await fetch(url, {
+      headers: this.headers
+    });
+
     const data = await res.json();
 
-    console.log("FIND DATA:", data);
+    console.log("FIND ID DATA:", data);
+
+    return data.records?.[0] || null;
+  },
+
+  async findByName(name) {
+
+    const clean =
+      name.trim().toLowerCase();
+
+    const formula = encodeURIComponent(
+      `FIND("${clean}", LOWER({Name}))`
+    );
+
+    const url =
+      `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_TABLE}?filterByFormula=${formula}`;
+
+    console.log("FIND NAME URL:", url);
+
+    const res = await fetch(url, {
+      headers: this.headers
+    });
+
+    const data = await res.json();
+
+    console.log("FIND NAME DATA:", data);
+
     return data.records?.[0] || null;
   },
 
   async update(recordId, fields) {
-    const url = `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_TABLE}/${recordId}`;
+
+    const url =
+      `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_TABLE}/${recordId}`;
+
     console.log("UPDATE URL:", url);
 
     const res = await fetch(url, {
