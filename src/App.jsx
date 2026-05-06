@@ -605,9 +605,9 @@ setLoading(true);
     r.fields.Name?.toUpperCase();
 
   return (
-    participantId === id ||
-    participantName?.includes(id)
-  );
+  participantId === id ||
+  participantName === id
+);
 });
 
 // Airtable fallback
