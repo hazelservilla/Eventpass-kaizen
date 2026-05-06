@@ -214,6 +214,7 @@ useEffect(() => {
     </div>
 
     {error ? (
+
       <div style={{
         position: "absolute",
         inset: 0,
@@ -223,96 +224,83 @@ useEffect(() => {
         padding: 20,
         textAlign: "center"
       }}>
-    <div style={{ color: "#f87171", fontSize: 13 }}>
-      ⚠️ {error}
-    </div>
-  </div>
-
-) : (
-
-  <>
-    {!scanning && (
-      <div style={{
-        position: "absolute",
-        inset: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 30
-      }}>
-        <button
-          onClick={startCamera}
-          style={{
-            padding: "16px 24px",
-            borderRadius: 12,
-            background: "#22d3ee",
-            color: "#000",
-            border: "none",
-            fontWeight: 700,
-            cursor: "pointer"
-          }}
-        >
-          📷 Tap to Start Camera
-        </button>
+        <div style={{
+          color: "#f87171",
+          fontSize: 13
+        }}>
+          ⚠️ {error}
+        </div>
       </div>
+
+    ) : (
+
+      <>
+        {!scanning && (
+          <div style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 30
+          }}>
+            <button
+              onClick={startCamera}
+              style={{
+                padding: "16px 24px",
+                borderRadius: 12,
+                background: "#22d3ee",
+                color: "#000",
+                border: "none",
+                fontWeight: 700,
+                cursor: "pointer"
+              }}
+            >
+              📷 Tap to Start Camera
+            </button>
+          </div>
+        )}
+
+        <video
+          ref={videoRef}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: scanning ? "block" : "none"
+          }}
+          muted
+          playsInline
+        />
+
+        <canvas
+          ref={canvasRef}
+          style={{ display: "none" }}
+        />
+
+        {/* Scanner Overlay */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none"
+        }}>
+          <div style={{
+            width: 180,
+            height: 180,
+            border: "3px solid #22d3ee",
+            borderRadius: 16
+          }} />
+        </div>
+
+      </>
+
     )}
-
-    <video
-      ref={videoRef}
-      style={{
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        display: scanning ? "block" : "none"
-      }}
-      muted
-      playsInline
-    />
-
-    <canvas
-      ref={canvasRef}
-      style={{ display: "none" }}
-    />
-        <>
-          <video ref={videoRef} style={{ width: "100%", height: "100%", objectFit: "cover" }} muted playsInline />
-          <canvas ref={canvasRef} style={{ display: "none" }} />
-          {/* Scanning overlay */}
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 180, height: 180, position: "relative" }}>
-              {["tl","tr","bl","br"].map(c => (
-                <div key={c} style={{
-                  position: "absolute", width: 28, height: 28,
-                  borderColor: "#22d3ee", borderStyle: "solid",
-                  borderWidth: c.includes("t") ? "3px 0 0" : "0 0 3px",
-                  borderRightWidth: c.includes("r") ? "3px" : 0,
-                  borderLeftWidth: c.includes("l") ? "3px" : 0,
-                  top: c.includes("t") ? 0 : "auto",
-                  bottom: c.includes("b") ? 0 : "auto",
-                  left: c.includes("l") ? 0 : "auto",
-                  right: c.includes("r") ? 0 : "auto",
-                  borderRadius: c === "tl" ? "6px 0 0 0" : c === "tr" ? "0 6px 0 0" : c === "bl" ? "0 0 0 6px" : "0 0 6px 0"
-                }} />
-              ))}
-              <div style={{
-                position: "absolute", left: 0, right: 0, height: 2,
-                background: "linear-gradient(90deg, transparent, #22d3ee, transparent)",
-                animation: "scan 2s ease-in-out infinite",
-                top: "50%",
-              }} />
-            </div>
-          </div>
-          <div style={{ position: "absolute", bottom: 12, left: 0, right: 0, textAlign: "center" }}>
-            <span style={{ background: "rgba(0,0,0,.6)", color: "#22d3ee", fontSize: 12, padding: "4px 12px", borderRadius: 20 }}>
-              Point camera at QR code
-            </span>
-          </div>
-        </>
-      )}
-      <style>{`@keyframes scan { 0%,100%{top:10%} 50%{top:90%} }`}</style>
-    </div>
-  );
+  </div>
+);
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // RESULT CARD
 // ─────────────────────────────────────────────────────────────────────────────
