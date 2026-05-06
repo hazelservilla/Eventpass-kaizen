@@ -557,6 +557,7 @@ function Dashboard({ records }) {
 function ScannerTab({ records, onUpdate, setResult, onScanned, autoId, unlocked }) {
   const [mode, setMode] = useState("CheckedIn");
   const [manualId, setManualId] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
   const [showCamera, setShowCamera] = useState(false);
   const [loading, setLoading] = useState(false);
   const processedRef = useRef(false);
@@ -740,21 +741,172 @@ if (onScanned) {
       </div>
 
       {/* Manual entry */}
-      <div style={{ position: "relative" }}>
-        <div style={{ fontSize: 12, color: "rgba(255,255,255,.3)", marginBottom: 8, textAlign: "center" }}>— or enter ID manually —</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input value={manualId} onChange={e => setManualId(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && manualId && processID(manualId)}
-            placeholder="e.g. EVT-001"
-            style={{ flex: 1, padding: "14px 16px", borderRadius: 12, background: "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)", color: "#fff", fontSize: 15, outline: "none", fontFamily: "monospace", letterSpacing: 2 }}
-          />
-          <button onClick={() => manualId && processID(manualId)} disabled={loading}
-            style={{ padding: "14px 20px", background: currentMode.color, border: "none", borderRadius: 12, color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 15, opacity: loading ? .6 : 1 }}>
-            {loading ? "…" : "GO"}
-          </button>
-        </div>
-      </div>
+<div style={{ position: "relative" }}>
 
+  <div style={{
+    fontSize: 12,
+    color: "rgba(255,255,255,.3)",
+    marginBottom: 8,
+    textAlign: "center"
+  }}>
+    — search participant manually —
+  </div>
+
+  <div style={{
+    display: "flex",
+    gap: 8
+  }}>
+
+    <input
+      value={manualId}
+      onChange={e => setManualId(e.target.value)}
+      onKeyDown={e => {
+
+        if (e.key === "Enter") {
+
+          const query =
+            manualId.trim().toUpperCase();
+
+          if (!query) return;
+
+          // clear old results
+          setSearchResults([]);
+
+          const matches = records.filter(r => {
+
+            const name =
+              r.fields.Name?.toUpperCase() || "";
+
+            const participantId =
+              r.fields.ParticipantID?.toUpperCase() || "";
+
+            return (
+              name.includes(query) ||
+              participantId.includes(query)
+            );
+          });
+
+          setSearchResults(matches);
+        }
+      }}
+      placeholder="Search name or ID"
+      style={{
+        flex: 1,
+        padding: "14px 16px",
+        borderRadius: 12,
+        background: "rgba(255,255,255,.08)",
+        border: "1px solid rgba(255,255,255,.12)",
+        color: "#fff",
+        fontSize: 15,
+        outline: "none"
+      }}
+    />
+
+    <button
+      onClick={() => {
+
+        const query =
+          manualId.trim().toUpperCase();
+
+        if (!query) return;
+
+        // clear old results
+        setSearchResults([]);
+
+        const matches = records.filter(r => {
+
+          const name =
+            r.fields.Name?.toUpperCase() || "";
+
+          const participantId =
+            r.fields.ParticipantID?.toUpperCase() || "";
+
+          return (
+            name.includes(query) ||
+            participantId.includes(query)
+          );
+        });
+
+        setSearchResults(matches);
+
+      }}
+      disabled={loading}
+      style={{
+        padding: "14px 20px",
+        background: currentMode.color,
+        border: "none",
+        borderRadius: 12,
+        color: "#fff",
+        fontWeight: 700,
+        cursor: "pointer",
+        fontSize: 15,
+        opacity: loading ? .6 : 1
+      }}
+    >
+      {loading ? "…" : "GO"}
+    </button>
+
+  </div>
+
+  {/* Search Results */}
+  {searchResults.length > 0 && (
+
+    <div style={{
+      marginTop: 16,
+      background: "rgba(255,255,255,.04)",
+      borderRadius: 14,
+      overflow: "hidden",
+      border: "1px solid rgba(255,255,255,.08)"
+    }}>
+
+      {searchResults.map(r => (
+
+        <button
+          key={r.id}
+          onClick={() => {
+
+            setSearchResults([]);
+
+            processID(
+              r.fields.ParticipantID
+            );
+          }}
+          style={{
+            width: "100%",
+            textAlign: "left",
+            padding: 16,
+            background: "transparent",
+            border: "none",
+            borderBottom: "1px solid rgba(255,255,255,.06)",
+            cursor: "pointer",
+            color: "#fff"
+          }}
+        >
+
+          <div style={{
+            fontWeight: 700,
+            fontSize: 15
+          }}>
+            {r.fields.Name}
+          </div>
+
+          <div style={{
+            fontSize: 12,
+            color: "rgba(255,255,255,.5)",
+            marginTop: 4
+          }}>
+            {r.fields.ParticipantID}
+          </div>
+
+        </button>
+
+      ))}
+
+    </div>
+
+  )}
+
+</div>
       {/* Mode info */}
       <div style={{ marginTop: 24, background: "rgba(255,255,255,.04)", borderRadius: 14, padding: 16, border: "1px solid rgba(255,255,255,.06)" }}>
         <div style={{ color: currentMode.color, fontWeight: 700, fontSize: 14, marginBottom: 6 }}>
