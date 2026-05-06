@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import jsQR from "jsqr";
 
 console.log("VERSION: LATEST DEPLOY V3"); // 👈 ADD HERE
 
@@ -89,41 +90,51 @@ function QRScanner({ onScan, onClose }) {
   const [error, setError] = useState(null);
   const [scanning, setScanning] = useState(false);
 
-  useEffect(() => {
-    let jsQR;
-    const loadAndStart = async () => {
-      try {
-        // Dynamically load jsQR
-        await new Promise((resolve, reject) => {
-          if (window.jsQR) { resolve(); return; }
-          const s = document.createElement("script");
-          s.src = "https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js";
-          s.onload = resolve;
-          s.onerror = reject;
-          document.head.appendChild(s);
-        });
-        jsQR = window.jsQR;
+  const startCamera = async () => {
+  try {
+    setError(null);
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-          setScanning(true);
-        }
-      } catch (e) {
-        setError("Camera access denied or not available. Use manual entry below.");
-      }
-    };
-    loadAndStart();
+    let stream;
 
-    return () => {
-      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
+    try {
+      // Try back camera first
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { exact: "environment" } },
+        audio: false,
+      });
+    } catch {
+      // fallback to any camera
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false,
+      });
+    }
+
+    streamRef.current = stream;
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+
+      await videoRef.current.play();
+
+      setScanning(true);
+    }
+  } catch (e) {
+    console.error("CAMERA ERROR:", e);
+
+    setError(`${e.name}: ${e.message}`);
+  }
+};
+
+useEffect(() => {
+  return () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+    }
+
+    cancelAnimationFrame(rafRef.current);
+  };
+}, []);
 
   useEffect(() => {
     if (!scanning) return;
@@ -139,7 +150,7 @@ function QRScanner({ onScan, onClose }) {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = window.jsQR?.(imageData.data, imageData.width, imageData.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
       if (code?.data) {
         onScan(code.data);
         return;
@@ -153,49 +164,43 @@ function QRScanner({ onScan, onClose }) {
   return (
     <div style={{ position: "relative", width: "100%", aspectRatio: "1", borderRadius: 16, overflow: "hidden", background: "#000" }}>
       {error ? (
-        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, textAlign: "center" }}>
-          <div style={{ color: "#f87171", fontSize: 13, lineHeight: 1.6 }}>⚠️ {error}</div>
-        </div>
-      ) : (
-        <>
-          <video ref={videoRef} style={{ width: "100%", height: "100%", objectFit: "cover" }} muted playsInline />
-          <canvas ref={canvasRef} style={{ display: "none" }} />
-          {/* Scanning overlay */}
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 180, height: 180, position: "relative" }}>
-              {["tl","tr","bl","br"].map(c => (
-                <div key={c} style={{
-                  position: "absolute", width: 28, height: 28,
-                  borderColor: "#22d3ee", borderStyle: "solid",
-                  borderWidth: c.includes("t") ? "3px 0 0" : "0 0 3px",
-                  borderRightWidth: c.includes("r") ? "3px" : 0,
-                  borderLeftWidth: c.includes("l") ? "3px" : 0,
-                  top: c.includes("t") ? 0 : "auto",
-                  bottom: c.includes("b") ? 0 : "auto",
-                  left: c.includes("l") ? 0 : "auto",
-                  right: c.includes("r") ? 0 : "auto",
-                  borderRadius: c === "tl" ? "6px 0 0 0" : c === "tr" ? "0 6px 0 0" : c === "bl" ? "0 0 0 6px" : "0 0 6px 0"
-                }} />
-              ))}
-              <div style={{
-                position: "absolute", left: 0, right: 0, height: 2,
-                background: "linear-gradient(90deg, transparent, #22d3ee, transparent)",
-                animation: "scan 2s ease-in-out infinite",
-                top: "50%",
-              }} />
-            </div>
-          </div>
-          <div style={{ position: "absolute", bottom: 12, left: 0, right: 0, textAlign: "center" }}>
-            <span style={{ background: "rgba(0,0,0,.6)", color: "#22d3ee", fontSize: 12, padding: "4px 12px", borderRadius: 20 }}>
-              Point camera at QR code
-            </span>
-          </div>
-        </>
-      )}
-      <style>{`@keyframes scan { 0%,100%{top:10%} 50%{top:90%} }`}</style>
+  <div style={{
+    position: "absolute",
+    inset: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    textAlign: "center"
+  }}>
+    <div style={{ color: "#f87171", fontSize: 13 }}>
+      ⚠️ {error}
     </div>
-  );
-}
+  </div>
+) : !scanning ? (
+  <div style={{
+    position: "absolute",
+    inset: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+  }}>
+    <button
+      onClick={startCamera}
+      style={{
+        padding: "16px 24px",
+        borderRadius: 12,
+        background: "#22d3ee",
+        color: "#000",
+        border: "none",
+        fontWeight: 700,
+        cursor: "pointer"
+      }}
+    >
+      📷 Tap to Start Camera
+    </button>
+  </div>
+) : 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RESULT CARD
