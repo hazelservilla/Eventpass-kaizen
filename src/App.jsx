@@ -931,6 +931,10 @@ export default function App() {
   const [scannedMode, setScannedMode] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
   const [pendingUrlId, setPendingUrlId] = useState(null);
+
+// ✅ LOAD AIRTABLE PARTICIPANTS
+useEffect(() => {
+
   const loadParticipants = async () => {
 
     if (!isConfigured()) {
@@ -957,7 +961,8 @@ export default function App() {
   loadParticipants();
 
 }, []);
-  const updateRecord = (id, fields) => {
+
+const updateRecord = (id, fields) => {
   setRecords(prev =>
     prev.map(r =>
       r.id === id
@@ -967,39 +972,50 @@ export default function App() {
   );
 };
 
-  // ── On load: check for ?id= in the URL (participant scanned QR with phone)
-  useEffect(() => {
-    const id = getUrlParam("id");
-    if (id) {
-      setPendingUrlId(id.toUpperCase());
-      
-      // Clear the URL param cleanly without reload
-      window.history.replaceState({}, "", window.location.pathname);
+// ── On load: check for ?id= in the URL
+useEffect(() => {
+
+  const id = getUrlParam("id");
+
+  if (id) {
+    setPendingUrlId(id.toUpperCase());
+
+    // clear URL without reload
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+
+}, []);
+
+// ── After unlock + records loaded
+useEffect(() => {
+
+  if (!unlocked || !pendingUrlId || records.length === 0) return;
+
+  setPendingUrlId(null);
+  setTab("scanner");
+
+}, [unlocked, pendingUrlId, records]);
+
+const handleScanResult = (participant, mode, updatedFields) => {
+
+  // Merge updated fields into participant for immediate display
+  const updated = {
+    ...participant,
+    fields: {
+      ...participant.fields,
+      ...updatedFields
     }
-  }, []);
-
-  // ── After unlock + records loaded, auto-process the URL id if present
-  useEffect(() => {
-    if (!unlocked || !pendingUrlId || records.length === 0) return;
-    setPendingUrlId(null);
-    setTab("scanner");
-  }, [unlocked, pendingUrlId, records]);
-
-  
-
-  const handleScanResult = (participant, mode, updatedFields) => {
-    // Merge updated fields into participant for immediate display
-    const updated = { ...participant, fields: { ...participant.fields, ...updatedFields } };
-    setScannedParticipant(updated);
-    setScannedMode(mode);
   };
 
-  const TABS = [
-    { key: "scanner",   icon: "📷", label: "Scan"      },
-    { key: "dashboard", icon: "📊", label: "Dashboard" },
-    { key: "setup",     icon: "⚙️",  label: "Setup"     },
-  ];
+  setScannedParticipant(updated);
+  setScannedMode(mode);
+};
 
+const TABS = [
+  { key: "scanner",   icon: "📷", label: "Scan" },
+  { key: "dashboard", icon: "📊", label: "Dashboard" },
+  { key: "setup",     icon: "⚙️", label: "Setup" },
+];
   if (!unlocked) return <PinLogin onUnlock={() => setUnlocked(true)} />;
 
   return (
