@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import jsQR from "jsqr";
 
 console.log("VERSION: LATEST DEPLOY V3"); // 👈 ADD HERE
+console.log("CAMERA FIX VERSION"); // 👈 ADD HERE
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG — Replace these with your real values before deploying
@@ -87,6 +88,7 @@ function QRScanner({ onScan, onClose }) {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const rafRef = useRef(null);
+
   const [error, setError] = useState(null);
   const [scanning, setScanning] = useState(false);
 
@@ -97,16 +99,19 @@ function QRScanner({ onScan, onClose }) {
     let stream;
 
     try {
-      // Try back camera first
+      // back camera first
       stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { exact: "environment" } },
-        audio: false,
+        video: {
+          facingMode: { exact: "environment" }
+        },
+        audio: false
       });
+
     } catch {
       // fallback to any camera
       stream = await navigator.mediaDevices.getUserMedia({
         video: true,
-        audio: false,
+        audio: false
       });
     }
 
@@ -119,6 +124,7 @@ function QRScanner({ onScan, onClose }) {
 
       setScanning(true);
     }
+
   } catch (e) {
     console.error("CAMERA ERROR:", e);
 
@@ -136,17 +142,36 @@ useEffect(() => {
   };
 }, []);
 
+  // scanning loop
   useEffect(() => {
     if (!scanning) return;
+
     const tick = () => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) {
+
+      if (!video || !canvas) {
         rafRef.current = requestAnimationFrame(tick);
         return;
       }
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+
+      // ✅ wait until video is ready
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      const width = video.videoWidth;
+      const height = video.videoHeight;
+
+      if (!width || !height) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -157,7 +182,9 @@ useEffect(() => {
       }
       rafRef.current = requestAnimationFrame(tick);
     };
+
     rafRef.current = requestAnimationFrame(tick);
+
     return () => cancelAnimationFrame(rafRef.current);
   }, [scanning, onScan]);
 
@@ -177,7 +204,9 @@ useEffect(() => {
       ⚠️ {error}
     </div>
   </div>
+
 ) : !scanning ? (
+
   <div style={{
     position: "absolute",
     inset: 0,
@@ -200,7 +229,47 @@ useEffect(() => {
       📷 Tap to Start Camera
     </button>
   </div>
-) : 
+
+) : (
+        <>
+          <video ref={videoRef} style={{ width: "100%", height: "100%", objectFit: "cover" }} muted playsInline />
+          <canvas ref={canvasRef} style={{ display: "none" }} />
+          {/* Scanning overlay */}
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ width: 180, height: 180, position: "relative" }}>
+              {["tl","tr","bl","br"].map(c => (
+                <div key={c} style={{
+                  position: "absolute", width: 28, height: 28,
+                  borderColor: "#22d3ee", borderStyle: "solid",
+                  borderWidth: c.includes("t") ? "3px 0 0" : "0 0 3px",
+                  borderRightWidth: c.includes("r") ? "3px" : 0,
+                  borderLeftWidth: c.includes("l") ? "3px" : 0,
+                  top: c.includes("t") ? 0 : "auto",
+                  bottom: c.includes("b") ? 0 : "auto",
+                  left: c.includes("l") ? 0 : "auto",
+                  right: c.includes("r") ? 0 : "auto",
+                  borderRadius: c === "tl" ? "6px 0 0 0" : c === "tr" ? "0 6px 0 0" : c === "bl" ? "0 0 0 6px" : "0 0 6px 0"
+                }} />
+              ))}
+              <div style={{
+                position: "absolute", left: 0, right: 0, height: 2,
+                background: "linear-gradient(90deg, transparent, #22d3ee, transparent)",
+                animation: "scan 2s ease-in-out infinite",
+                top: "50%",
+              }} />
+            </div>
+          </div>
+          <div style={{ position: "absolute", bottom: 12, left: 0, right: 0, textAlign: "center" }}>
+            <span style={{ background: "rgba(0,0,0,.6)", color: "#22d3ee", fontSize: 12, padding: "4px 12px", borderRadius: 20 }}>
+              Point camera at QR code
+            </span>
+          </div>
+        </>
+      )}
+      <style>{`@keyframes scan { 0%,100%{top:10%} 50%{top:90%} }`}</style>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // RESULT CARD
@@ -397,7 +466,7 @@ function Dashboard({ records }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // SCANNER TAB
 // ─────────────────────────────────────────────────────────────────────────────
-function ScannerTab({ records, onUpdate, setResult, onScanned, autoId }) {
+function ScannerTab({ records, onUpdate, setResult, onScanned, autoId, unlocked }) {
   const [mode, setMode] = useState("CheckedIn");
   const [manualId, setManualId] = useState("");
   const [showCamera, setShowCamera] = useState(false);
@@ -406,8 +475,12 @@ function ScannerTab({ records, onUpdate, setResult, onScanned, autoId }) {
 
   // Auto-fire if URL param id was passed in after unlock
   useEffect(() => {
-    if (autoId && !processedRef.current) processID(autoId);
-  }, [autoId]);
+  if (!unlocked) return;
+
+  if (autoId && !processedRef.current) {
+    processID(autoId);
+  }
+}, [autoId, unlocked]);
 
   const MODES = [
     { key: "CheckedIn", label: "Check-in", icon: "✅", color: "#22c55e" },
@@ -419,6 +492,10 @@ function ScannerTab({ records, onUpdate, setResult, onScanned, autoId }) {
   const currentMode = MODES.find(m => m.key === mode);
 
   const processID = useCallback(async (rawInput) => {
+    if (processedRef.current) return;
+processedRef.current = true;
+
+setLoading(true);
   console.log("RAW INPUT:", rawInput); // 👈 ADD HERE
 
   let id = rawInput.trim().toUpperCase();
@@ -443,23 +520,39 @@ function ScannerTab({ records, onUpdate, setResult, onScanned, autoId }) {
       setLoading(false);
       setTimeout(() => { processedRef.current = false; }, 2000);
       return;
-    }
+}
+const fields = record.fields;
 
-    const fields = record.fields;
+// ✅ Block duplicate per mode ONLY
+const alreadyUsed = fields?.[mode];
 
-    // Validation
-    if (mode === "CheckedIn" && fields.CheckedIn) {
-      setResult({ type: "error", title: "Already Checked In", subtitle: "This participant already entered.", participant: fields });
-      setLoading(false); setTimeout(() => { processedRef.current = false; }, 2000); return;
-    }
-    if (mode !== "CheckedIn" && !fields.CheckedIn) {
-      setResult({ type: "error", title: "Not Checked In Yet", subtitle: "Participant must check in first.", participant: fields });
-      setLoading(false); setTimeout(() => { processedRef.current = false; }, 2000); return;
-    }
-    if (mode !== "CheckedIn" && fields[mode]) {
-      setResult({ type: "error", title: `Already Claimed`, subtitle: `${currentMode.label} already used.`, participant: fields });
-      setLoading(false); setTimeout(() => { processedRef.current = false; }, 2000); return;
-    }
+if (alreadyUsed) {
+  setResult({
+    type: "error",
+    title: "Already Claimed",
+    subtitle: `${mode} already used`,
+    participant: fields
+  });
+
+  setLoading(false);
+  setTimeout(() => { processedRef.current = false; }, 1500);
+  return;
+}
+
+// ✅ Require check-in before food/drinks
+if (mode !== "CheckedIn" && !fields.CheckedIn) {
+  setResult({
+    type: "error",
+    title: "Not Checked In Yet",
+    subtitle: "Participant must check in first.",
+    participant: fields
+  });
+
+  setLoading(false);
+  setTimeout(() => { processedRef.current = false; }, 1500);
+  return;
+}
+    
 
     // Update
     const update = { [mode]: true };
@@ -775,6 +868,15 @@ export default function App() {
   console.log("🔥 VERSION 2 DEPLOYED"); // 👈 ADD HERE
 
   const [unlocked, setUnlocked] = useState(false);
+  const [autoId, setAutoId] = useState(null); // ✅ ADD THIS
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+
+    if (id) {
+      setAutoId(id.toUpperCase());
+    }
+  }, []);
   const [tab, setTab] = useState("scanner");
   const [records, setRecords] = useState(MOCK);
   const [result, setResult] = useState(null);
@@ -797,6 +899,7 @@ export default function App() {
     const id = getUrlParam("id");
     if (id) {
       setPendingUrlId(id.toUpperCase());
+      
       // Clear the URL param cleanly without reload
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -868,7 +971,8 @@ export default function App() {
   onUpdate={updateRecord}
           setResult={setResult}
           onScanned={handleScanResult}
-          autoId={pendingUrlId}
+          autoId={autoId}
+          unlocked={unlocked}
         />
       )}
       {tab === "dashboard" && <Dashboard records={records} />}
