@@ -78,7 +78,7 @@ const MOCK = [
 ];
 
 const isConfigured = () =>
-  CONFIG.AIRTABLE_API_KEY !== "YOUR_AIRTABLE_API_KEY";
+  !!CONFIG.AIRTABLE_API_KEY;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // QR SCANNER (uses device camera via jsQR)
@@ -925,12 +925,38 @@ export default function App() {
     }
   }, []);
   const [tab, setTab] = useState("scanner");
-  const [records, setRecords] = useState(MOCK);
+  const [records, setRecords] = useState([]);
   const [result, setResult] = useState(null);
   const [scannedParticipant, setScannedParticipant] = useState(null);
   const [scannedMode, setScannedMode] = useState(null);
   const [loadingData, setLoadingData] = useState(false);
   const [pendingUrlId, setPendingUrlId] = useState(null);
+  const loadParticipants = async () => {
+
+    if (!isConfigured()) {
+      setRecords(MOCK);
+      return;
+    }
+
+    try {
+
+      const rows = await AT.getAll();
+
+      console.log("AIRTABLE ROWS:", rows);
+
+      setRecords(rows);
+
+    } catch (e) {
+
+      console.error("AIRTABLE LOAD FAILED:", e);
+
+      setRecords(MOCK);
+    }
+  };
+
+  loadParticipants();
+
+}, []);
   const updateRecord = (id, fields) => {
   setRecords(prev =>
     prev.map(r =>
