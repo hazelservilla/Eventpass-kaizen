@@ -11,7 +11,7 @@ const CONFIG = {
   AIRTABLE_API_KEY: import.meta.env.VITE_AIRTABLE_API_KEY,      // paste your pat_XXXXXX token
   AIRTABLE_BASE_ID: "appoq3LYXqmZSiXAa",           // paste your appXXXXXX base ID
   AIRTABLE_TABLE:   "Participants",                // keep exactly as is
-  STAFF_PIN:        "1234",                        // ⚠️ change before event day!
+  STAFF_PIN:        "0909",                        // ⚠️ change before event day!
   EVENT_NAME:       "Kaizen S9 — Season Ender Party",
 };
 
