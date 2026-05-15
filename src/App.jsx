@@ -25,7 +25,18 @@ const AT = {
   },
 
   async getAll() {
-    const url = `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_TABLE}`;
+
+  let allRecords = [];
+  let offset = null;
+
+  do {
+
+    let url =
+      `https://api.airtable.com/v0/${CONFIG.AIRTABLE_BASE_ID}/${CONFIG.AIRTABLE_TABLE}?pageSize=100`;
+
+    if (offset) {
+      url += `&offset=${offset}`;
+    }
 
     console.log("GET ALL URL:", url);
 
@@ -35,10 +46,22 @@ const AT = {
 
     const data = await res.json();
 
-    console.log("GET ALL DATA:", data);
+    allRecords = [
+      ...allRecords,
+      ...(data.records || [])
+    ];
 
-    return data.records || [];
-  },
+    offset = data.offset;
+
+  } while (offset);
+
+  console.log(
+    "TOTAL AIRTABLE RECORDS:",
+    allRecords.length
+  );
+
+  return allRecords;
+},
 
   async findByID(participantId) {
 
